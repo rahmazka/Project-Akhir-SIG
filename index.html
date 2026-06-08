@@ -1,0 +1,915 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Peta Faskes Hewan – Pekanbaru</title>
+
+    <link rel="stylesheet" href="css/leaflet.css">
+    <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+    <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+    <link rel="stylesheet" href="css/qgis2web.css">
+    <link rel="stylesheet" href="css/fontawesome-all.min.css">
+    <link rel="stylesheet" href="css/leaflet.photon.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body,
+        input,
+        button,
+        .leaflet-popup-content {
+            font-family: 'Poppins', sans-serif;
+        }
+
+        /* biar ikon Leaflet dan FontAwesome tidak rusak */
+        .leaflet-control,
+        .leaflet-control a,
+        .leaflet-control button {
+            font-family: Arial, Helvetica, sans-serif !important;
+        }
+
+        .fas,
+        .fa,
+        .far,
+        .fab {
+            font-family: "Font Awesome 5 Free" !important;
+            font-weight: 900 !important;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #f0f4f8;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        /* ===== SEARCH FLOATING ===== */
+        .search-panel {
+            position: absolute;
+            top: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1200;
+            width: 460px;
+            max-width: calc(100% - 40px);
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #ffffff;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px 12px;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, .12);
+        }
+
+        .search-box:focus-within {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, .12), 0 4px 18px rgba(0, 0, 0, .12);
+        }
+
+        #searchInput {
+            width: 100%;
+            border: none;
+            outline: none;
+            background: transparent;
+            color: #1e293b;
+            font-size: 13px;
+        }
+
+        #searchInput::placeholder {
+            color: #94a3b8;
+        }
+
+        #clearBtn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #94a3b8;
+            font-size: 20px;
+            line-height: 1;
+            padding: 0;
+        }
+
+        #clearBtn:hover {
+            color: #475569;
+        }
+
+        #searchResults {
+            display: none;
+            background: #ffffff;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            margin-top: 8px;
+            max-height: 260px;
+            overflow-y: auto;
+            box-shadow: 0 6px 22px rgba(0, 0, 0, .14);
+        }
+
+        .s-item {
+            padding: 10px 13px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+            transition: background .15s;
+        }
+
+        .s-item:last-child {
+            border-bottom: none;
+        }
+
+        .s-item:hover {
+            background: #eff6ff;
+        }
+
+        .s-name {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .s-sub {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 2px;
+            line-height: 1.35;
+        }
+
+        .s-empty {
+            padding: 12px;
+            font-size: 12px;
+            color: #94a3b8;
+            text-align: center;
+        }
+
+        /* ===== TITLE CARD ===== */
+        .title-card {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            z-index: 1100;
+            background: rgba(255, 255, 255, .95);
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px 14px;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, .12);
+        }
+
+        .title-card h1 {
+            font-size: 14px;
+            line-height: 1.2;
+            color: #0f172a;
+            margin: 0;
+        }
+
+        .title-card p {
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        /* ===== LEGEND FLOATING ===== */
+        .legend-card {
+            position: absolute;
+            right: 14px;
+            bottom: 34px;
+            z-index: 1100;
+            background: rgba(255, 255, 255, .95);
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px 14px;
+            min-width: 190px;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, .12);
+        }
+
+        .legend-card .leg-title {
+            font-size: 11px;
+            font-weight: 800;
+            color: #334155;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            margin-bottom: 8px;
+        }
+
+        .leg-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11.5px;
+            color: #475569;
+            margin: 5px 0;
+        }
+
+        .l-dot {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            flex-shrink: 0;
+        }
+
+        /* ===== CUSTOM LEAFLET CONTROL ===== */
+        .leaflet-control-layers {
+            border: none !important;
+            border-radius: 12px !important;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, .12) !important;
+            overflow: hidden;
+        }
+
+        .leaflet-control-layers-expanded {
+            padding: 10px 12px !important;
+            font-size: 12px;
+            color: #334155;
+            background: rgba(255, 255, 255, .98) !important;
+        }
+
+        .leaflet-control-zoom,
+        .leaflet-control-locate {
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .leaflet-control-zoom a,
+        .leaflet-control-locate a {
+            background: #fff !important;
+            color: #475569 !important;
+            border: 1.5px solid #e2e8f0 !important;
+            border-radius: 9px !important;
+            margin-bottom: 4px !important;
+            width: 32px !important;
+            height: 32px !important;
+            line-height: 32px !important;
+            font-size: 16px !important;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, .08) !important;
+        }
+
+        .leaflet-control-zoom a:hover,
+        .leaflet-control-locate a:hover {
+            background: #eff6ff !important;
+            color: #2563eb !important;
+            border-color: #bfdbfe !important;
+        }
+
+        .leaflet-control-layers-toggle {
+            display: none !important;
+        }
+
+        #customLayerBtn {
+            position: absolute;
+            left: 20px;
+            bottom: 34px;
+            z-index: 1200;
+            border: 1.5px solid #e2e8f0;
+            background: rgba(255, 255, 255, .96);
+            color: #334155;
+            padding: 11px 14px;
+            border-radius: 14px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 6px 22px rgba(0, 0, 0, .16);
+        }
+
+        #customLayerBtn:hover {
+            background: #f8fafc;
+        }
+
+        .leaflet-control-layers.layer-hidden {
+            display: none !important;
+        }
+
+        .leaflet-bottom.leaflet-left {
+            left: 18px !important;
+            bottom: 80px !important;
+        }
+
+        /* ===== POPUP ===== */
+        .leaflet-popup-content-wrapper {
+            border-radius: 14px !important;
+            padding: 0 !important;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, .14) !important;
+            border: 1.5px solid #e2e8f0 !important;
+        }
+
+        .leaflet-popup-content {
+            margin: 0 !important;
+            width: auto !important;
+        }
+
+        .leaflet-popup-tip {
+            background: #fff !important;
+        }
+
+        .leaflet-popup-close-button {
+            top: 8px !important;
+            right: 8px !important;
+            color: #64748b !important;
+            font-size: 16px !important;
+            background: rgba(255, 255, 255, .85) !important;
+            border-radius: 50% !important;
+            width: 22px !important;
+            height: 22px !important;
+            line-height: 22px !important;
+            text-align: center !important;
+            z-index: 10;
+        }
+
+        .p-foto {
+            width: 280px;
+            height: 150px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .p-nofoto {
+            width: 280px;
+            height: 85px;
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 38px;
+        }
+
+        .p-body {
+            background: #fff;
+            padding: 14px 16px 16px;
+            width: 280px;
+        }
+
+        .p-badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+            margin-bottom: 8px;
+            letter-spacing: .2px;
+        }
+
+        .b-rsh {
+            background: #fce7f3;
+            color: #be185d;
+        }
+
+        .b-kln {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .b-prak {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+
+        .b-pusk {
+            background: #cffafe;
+            color: #155e75;
+        }
+
+        .b-upt {
+            background: #ede9fe;
+            color: #5b21b6;
+        }
+
+        .b-def {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .p-nama {
+            font-size: 13px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 4px;
+            line-height: 1.4;
+        }
+
+        .p-alamat {
+            font-size: 11px;
+            color: #64748b;
+            line-height: 1.55;
+        }
+
+        .p-loc {
+            font-size: 10px;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        .p-div {
+            height: 1px;
+            background: #f1f5f9;
+            margin: 10px 0;
+        }
+
+        .p-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .p-lbl {
+            font-size: 10px;
+            color: #94a3b8;
+        }
+
+        .p-val {
+            font-size: 10.5px;
+            color: #475569;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .tip-kel {
+            background: rgba(255, 255, 255, .97) !important;
+            border: 1.5px solid #e2e8f0 !important;
+            color: #1e293b !important;
+            border-radius: 8px !important;
+            font-size: 11.5px !important;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, .1) !important;
+            padding: 6px 11px !important;
+        }
+
+        @media (max-width: 700px) {
+            .search-panel {
+                left: 56px;
+                right: 14px;
+                width: auto;
+                transform: none;
+            }
+
+            .title-card {
+                display: none;
+            }
+
+            .legend-card {
+                right: 10px;
+                bottom: 28px;
+                min-width: 165px;
+                padding: 10px 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <button id="customLayerBtn" onclick="toggleCustomLayer()"> 🗂️ Layer</button>
+
+    <div class="search-panel">
+        <div class="search-box">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5"
+                stroke-linecap="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input id="searchInput" type="text" placeholder="Cari nama, alamat, kecamatan..."
+                oninput="doSearch(this.value)">
+            <button id="clearBtn" onclick="clearSearch()">&times;</button>
+        </div>
+        <div id="searchResults"></div>
+    </div>
+
+    <div class="title-card">
+        <h1>🐾 Peta Faskes Hewan</h1>
+        <p>Kota Pekanbaru &middot; Provinsi Riau</p>
+    </div>
+
+    <div class="legend-card">
+        <div class="leg-title">Legenda Titik</div>
+        <div class="leg-row"><span class="l-dot" style="background:#ec4899;box-shadow:0 0 0 1px #f9a8d4"></span>Rumah
+            Sakit Hewan</div>
+        <div class="leg-row"><span class="l-dot" style="background:#22c55e;box-shadow:0 0 0 1px #86efac"></span>Klinik
+            Hewan</div>
+        <div class="leg-row"><span class="l-dot" style="background:#eab308;box-shadow:0 0 0 1px #fde047"></span>Praktek
+            Dokter Hewan</div>
+        <div class="leg-row"><span class="l-dot"
+                style="background:#06b6d4;box-shadow:0 0 0 1px #67e8f9"></span>Puskeswan</div>
+        <div class="leg-row"><span class="l-dot" style="background:#8b5cf6;box-shadow:0 0 0 1px #c4b5fd"></span>UPT /
+            Lab Veteriner</div>
+    </div>
+
+    <script src="js/qgis2web_expressions.js"></script>
+    <script src="js/leaflet.js"></script>
+    <script src="js/L.Control.Layers.Tree.min.js"></script>
+    <script src="js/L.Control.Locate.min.js"></script>
+    <script src="js/leaflet.rotatedMarker.js"></script>
+    <script src="js/leaflet.pattern.js"></script>
+    <script src="js/leaflet-hash.js"></script>
+    <script src="js/Autolinker.min.js"></script>
+    <script src="js/rbush.min.js"></script>
+    <script src="js/labelgun.min.js"></script>
+    <script src="js/labels.js"></script>
+    <script src="js/leaflet.photon.js"></script>
+
+    <!-- DATA: mengikuti nama layer dari kode pertama -->
+    <script src="data/Dissolved_3.js"></script>
+    <script src="data/Batas_Wilayah_KelurahanDesa_10K_AR_4.js"></script>
+    <script src="data/JALAN_LN_50K_5.js"></script>
+    <script src="data/JALAN_LN_50K_6.js"></script>
+    <script src="data/datasig_7.js"></script>
+
+    <script>
+        var autolinker = new Autolinker({ truncate: { length: 30, location: 'smart' } });
+
+        var map = L.map('map', {
+            zoomControl: false,
+            maxZoom: 19,
+            minZoom: 1
+        });
+
+        new L.Hash(map);
+        map.attributionControl.setPrefix('qgis2web &middot; Leaflet &middot; QGIS');
+        L.control.zoom({ position: 'topleft' }).addTo(map);
+        L.control.locate({ locateOptions: { maxZoom: 19 } }).addTo(map);
+
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+            if (bounds_group.getLayers().length) {
+                map.fitBounds(bounds_group.getBounds());
+            }
+        }
+
+        // ===================== 3 BASEMAP DARI KODE PERTAMA =====================
+        map.createPane('pane_OpenStreetMap_0');
+        map.getPane('pane_OpenStreetMap_0').style.zIndex = 100;
+        var layer_OpenStreetMap_0 = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            pane: 'pane_OpenStreetMap_0',
+            opacity: 1.0,
+            attribution: 'OpenStreetMap',
+            minZoom: 1,
+            maxZoom: 19,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+
+        map.createPane('pane_GoogleMaps_1');
+        map.getPane('pane_GoogleMaps_1').style.zIndex = 100;
+        var layer_GoogleMaps_1 = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            pane: 'pane_GoogleMaps_1',
+            opacity: 1.0,
+            attribution: 'Google Maps',
+            minZoom: 1,
+            maxZoom: 19,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+
+        map.createPane('pane_BingVirtualEarth_2');
+        map.getPane('pane_BingVirtualEarth_2').style.zIndex = 100;
+
+        function tileToQuadKey(x, y, z) {
+            var quadKey = '';
+            for (var i = z; i > 0; i--) {
+                var digit = 0;
+                var mask = 1 << (i - 1);
+                if ((x & mask) !== 0) digit += 1;
+                if ((y & mask) !== 0) digit += 2;
+                quadKey += digit.toString();
+            }
+            return quadKey;
+        }
+
+        var BingLayer = L.TileLayer.extend({
+            getTileUrl: function (coords) {
+                var quadKey = tileToQuadKey(coords.x, coords.y, coords.z);
+                var subdomain = this._getSubdomain(coords);
+                return 'https://ecn.t' + subdomain + '.tiles.virtualearth.net/tiles/a' + quadKey + '.jpeg?g=1&mkt=id-ID';
+            }
+        });
+
+        var layer_BingVirtualEarth_2 = new BingLayer('', {
+            pane: 'pane_BingVirtualEarth_2',
+            opacity: 1.0,
+            attribution: 'Bing Maps',
+            minZoom: 1,
+            maxZoom: 19,
+            minNativeZoom: 1,
+            maxNativeZoom: 19,
+            subdomains: ['0', '1', '2', '3']
+        });
+
+        // Basemap default
+        map.addLayer(layer_BingVirtualEarth_2);
+
+        // ===================== LAYER BATAS KECAMATAN =====================
+        map.createPane('pane_Dissolved_3');
+        map.getPane('pane_Dissolved_3').style.zIndex = 401;
+        map.getPane('pane_Dissolved_3').style['mix-blend-mode'] = 'normal';
+        var layer_Dissolved_3 = new L.geoJson(json_Dissolved_3, {
+            pane: 'pane_Dissolved_3',
+            interactive: false,
+            style: function () {
+                return {
+                    pane: 'pane_Dissolved_3',
+                    color: 'rgba(255,255,255,0.7)',
+                    weight: 2,
+                    fill: true,
+                    fillOpacity: 0.07,
+                    fillColor: 'rgba(240,244,248,1)',
+                    interactive: false
+                };
+            }
+        });
+        bounds_group.addLayer(layer_Dissolved_3);
+        map.addLayer(layer_Dissolved_3);
+
+        // ===================== LAYER BATAS KELURAHAN =====================
+        map.createPane('pane_Batas_Wilayah_KelurahanDesa_10K_AR_4');
+        map.getPane('pane_Batas_Wilayah_KelurahanDesa_10K_AR_4').style.zIndex = 402;
+        map.getPane('pane_Batas_Wilayah_KelurahanDesa_10K_AR_4').style['mix-blend-mode'] = 'normal';
+        var layer_Batas_Wilayah_KelurahanDesa_10K_AR_4 = new L.geoJson(json_Batas_Wilayah_KelurahanDesa_10K_AR_4, {
+            pane: 'pane_Batas_Wilayah_KelurahanDesa_10K_AR_4',
+            interactive: true,
+            style: function () {
+                return {
+                    pane: 'pane_Batas_Wilayah_KelurahanDesa_10K_AR_4',
+                    color: 'rgba(255,255,255,0.5)',
+                    weight: 0.8,
+                    fill: true,
+                    fillOpacity: 0.04,
+                    fillColor: 'rgba(200,210,220,1)',
+                    interactive: true
+                };
+            },
+            onEachFeature: function (feature, layer) {
+                var nama = feature.properties['NAMOBJ'] || feature.properties['WADMKK'] || '';
+                layer.on('mouseover', function () {
+                    layer.setStyle({ fillOpacity: 0.22, color: 'rgba(255,255,255,0.9)', weight: 1.5 });
+                    if (nama) {
+                        layer.bindTooltip('<b style="color:#1e293b">' + nama + '</b><br><small style="color:#94a3b8">Kelurahan</small>', {
+                            sticky: true,
+                            className: 'tip-kel'
+                        }).openTooltip();
+                    }
+                });
+                layer.on('mouseout', function () {
+                    layer_Batas_Wilayah_KelurahanDesa_10K_AR_4.resetStyle(layer);
+                    layer.closeTooltip();
+                });
+            }
+        });
+        bounds_group.addLayer(layer_Batas_Wilayah_KelurahanDesa_10K_AR_4);
+        map.addLayer(layer_Batas_Wilayah_KelurahanDesa_10K_AR_4);
+
+        // ===================== JALAN LOKAL =====================
+        map.createPane('pane_JALAN_LN_50K_5');
+        map.getPane('pane_JALAN_LN_50K_5').style.zIndex = 403;
+        map.getPane('pane_JALAN_LN_50K_5').style['mix-blend-mode'] = 'normal';
+        var layer_JALAN_LN_50K_5 = new L.geoJson(json_JALAN_LN_50K_5, {
+            pane: 'pane_JALAN_LN_50K_5',
+            interactive: false,
+            style: function () {
+                return {
+                    pane: 'pane_JALAN_LN_50K_5',
+                    color: 'rgba(191,219,254,0.55)',
+                    weight: 1.2,
+                    lineCap: 'round',
+                    lineJoin: 'round',
+                    fillOpacity: 0,
+                    interactive: false
+                };
+            }
+        });
+        bounds_group.addLayer(layer_JALAN_LN_50K_5);
+        map.addLayer(layer_JALAN_LN_50K_5);
+
+        // ===================== JALAN UTAMA =====================
+        map.createPane('pane_JALAN_LN_50K_6');
+        map.getPane('pane_JALAN_LN_50K_6').style.zIndex = 404;
+        map.getPane('pane_JALAN_LN_50K_6').style['mix-blend-mode'] = 'normal';
+        var layer_JALAN_LN_50K_6 = new L.geoJson(json_JALAN_LN_50K_6, {
+            pane: 'pane_JALAN_LN_50K_6',
+            interactive: false,
+            style: function () {
+                return {
+                    pane: 'pane_JALAN_LN_50K_6',
+                    color: 'rgba(96,165,250,0.65)',
+                    weight: 1.3,
+                    lineCap: 'round',
+                    lineJoin: 'round',
+                    fillOpacity: 0,
+                    interactive: false
+                };
+            }
+        });
+        bounds_group.addLayer(layer_JALAN_LN_50K_6);
+        map.addLayer(layer_JALAN_LN_50K_6);
+
+        function getBadge(t) {
+            var m = {
+                'Rumah Sakit Hewan': ['b-rsh', '🏥 Rumah Sakit Hewan'],
+                'Klinik Hewan': ['b-kln', '🏨 Klinik Hewan'],
+                'Praktek Dokter Hewan': ['b-prak', '👨‍⚕️ Praktek Dokter Hewan'],
+                'Puskeswan': ['b-pusk', '🏛️ Puskeswan'],
+                'UPT': ['b-upt', '🔬 UPT / Lab Veteriner']
+            };
+            return m[t] || ['b-def', t || 'Faskes Hewan'];
+        }
+
+        function getIkon(t) {
+            return {
+                'Rumah Sakit Hewan': '🏥',
+                'Klinik Hewan': '🏨',
+                'Praktek Dokter Hewan': '👨‍⚕️',
+                'Puskeswan': '🏛️',
+                'UPT': '🔬'
+            }[t] || '🐾';
+        }
+
+        function gdriveToDirect(url) {
+            if (!url) return '';
+            url = String(url).trim();
+            var match1 = url.match(/\/file\/d\/([^/]+)/);
+            if (match1 && match1[1]) return 'https://drive.google.com/uc?export=view&id=' + match1[1];
+            var match2 = url.match(/[?&]id=([^&]+)/);
+            if (match2 && match2[1]) return 'https://drive.google.com/uc?export=view&id=' + match2[1];
+            return url;
+        }
+
+        function buildPopup(feature) {
+            var p = feature.properties;
+            var tipe = p['TIPE'] || '';
+            var nama = p['NAMA'] || '-';
+            var almt = p['ALAMAT'] || '-';
+            var kel = p['KELURAHAN'] || '-';
+            var kec = p['KECAMATAN'] || '-';
+            var foto = gdriveToDirect(p['FOTO']);
+
+            var hasFoto = foto && foto !== 'null' && String(foto).trim() !== '';
+            var fotoHtml = hasFoto
+                ? '<img class="p-foto" src="' + String(foto).trim() + '" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
+                + '<div class="p-nofoto" style="display:none">' + getIkon(tipe) + '</div>'
+                : '<div class="p-nofoto">' + getIkon(tipe) + '</div>';
+
+            var badge = getBadge(tipe);
+            return '<div>' + fotoHtml
+                + '<div class="p-body">'
+                + '<span class="p-badge ' + badge[0] + '">' + badge[1] + '</span>'
+                + '<div class="p-nama">' + nama + '</div>'
+                + '<div class="p-alamat">' + almt + '</div>'
+                + '<div class="p-loc">Kel. ' + kel + ' &middot; Kec. ' + kec + '</div>'
+                + '<div class="p-div"></div>'
+                + '<div class="p-row"><span class="p-lbl">Jenis Fasilitas</span><span class="p-val">' + tipe + '</span></div>'
+                + '</div></div>';
+        }
+
+        function mStyle(tipe) {
+            var c = {
+                'Rumah Sakit Hewan': { f: '#ec4899', r: 8 },
+                'Klinik Hewan': { f: '#22c55e', r: 7 },
+                'Praktek Dokter Hewan': { f: '#eab308', r: 7 },
+                'Puskeswan': { f: '#06b6d4', r: 7 },
+                'UPT': { f: '#8b5cf6', r: 7 }
+            };
+            var s = c[tipe] || { f: '#ef4444', r: 7 };
+            return {
+                radius: s.r,
+                fillColor: s.f,
+                color: '#ffffff',
+                weight: 2,
+                fillOpacity: 1,
+                opacity: 1
+            };
+        }
+
+        // ===================== TITIK FASKES =====================
+        map.createPane('pane_datasig_7');
+        map.getPane('pane_datasig_7').style.zIndex = 405;
+        map.getPane('pane_datasig_7').style['mix-blend-mode'] = 'normal';
+        var layer_datasig_7 = new L.geoJson(json_datasig_7, {
+            pane: 'pane_datasig_7',
+            interactive: true,
+            pointToLayer: function (feature, latlng) {
+                var st = mStyle(feature.properties['TIPE'] || '');
+                st.pane = 'pane_datasig_7';
+                return L.circleMarker(latlng, st);
+            },
+            onEachFeature: function (feature, layer) {
+                layer.bindPopup(buildPopup(feature), { maxWidth: 300, minWidth: 280 });
+                var origR = mStyle(feature.properties['TIPE'] || '').radius;
+                layer.on('mouseover', function () {
+                    layer.setStyle({ radius: origR + 3, weight: 2.5 });
+                });
+                layer.on('mouseout', function () {
+                    layer.setStyle({ radius: origR, weight: 2 });
+                });
+            }
+        });
+        bounds_group.addLayer(layer_datasig_7);
+        map.addLayer(layer_datasig_7);
+        setBounds();
+
+        // CONTROL LAYER: 3 BASEMAP + OVERLAY
+        var baseMaps = {
+            'Bing Satelit': layer_BingVirtualEarth_2,
+            'Google Maps': layer_GoogleMaps_1,
+            'OpenStreetMap': layer_OpenStreetMap_0
+        };
+
+        var overlayMaps = {
+            'Titik Faskes Hewan': layer_datasig_7,
+            'Jalan Utama': layer_JALAN_LN_50K_6,
+            'Jalan Lokal': layer_JALAN_LN_50K_5,
+            'Batas Kelurahan': layer_Batas_Wilayah_KelurahanDesa_10K_AR_4,
+            'Batas Kecamatan': layer_Dissolved_3
+        };
+
+        var layerControl = L.control.layers(baseMaps, overlayMaps, {
+            collapsed: false,
+            position: 'bottomleft'
+        }).addTo(map);
+
+        document.querySelector('.leaflet-control-layers').classList.add('layer-hidden');
+
+        function toggleCustomLayer() {
+            var layerBox = document.querySelector('.leaflet-control-layers');
+            layerBox.classList.toggle('layer-hidden');
+        }
+
+        // SEARCH
+        var allMarkers = [];
+        layer_datasig_7.eachLayer(function (l) {
+            allMarkers.push(l);
+        });
+
+        function doSearch(val) {
+            var box = document.getElementById('searchResults');
+            if (!val || val.length < 2) {
+                box.style.display = 'none';
+                return;
+            }
+
+            var q = val.toLowerCase();
+            var hits = allMarkers.filter(function (l) {
+                var p = l.feature.properties;
+                return (p['NAMA'] || '').toLowerCase().includes(q)
+                    || (p['ALAMAT'] || '').toLowerCase().includes(q)
+                    || (p['KECAMATAN'] || '').toLowerCase().includes(q)
+                    || (p['KELURAHAN'] || '').toLowerCase().includes(q)
+                    || (p['TIPE'] || '').toLowerCase().includes(q);
+            });
+
+            box.innerHTML = hits.length === 0
+                ? '<div class="s-empty">Tidak ditemukan</div>'
+                : hits.slice(0, 10).map(function (l) {
+                    var p = l.feature.properties;
+                    var idx = allMarkers.indexOf(l);
+                    return '<div class="s-item" onclick="goTo(' + idx + ')">'
+                        + '<div class="s-name">' + (p['NAMA'] || '-') + '</div>'
+                        + '<div class="s-sub">' + (p['TIPE'] || '') + ' &middot; Kec. ' + (p['KECAMATAN'] || '') + '</div>'
+                        + '</div>';
+                }).join('');
+
+            box.style.display = 'block';
+        }
+
+        function goTo(idx) {
+            var l = allMarkers[idx];
+            if (!l) return;
+            if (!map.hasLayer(layer_datasig_7)) map.addLayer(layer_datasig_7);
+            map.setView(l.getLatLng(), 17);
+            setTimeout(function () {
+                l.openPopup();
+            }, 300);
+            document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('searchInput').value = l.feature.properties['NAMA'] || '';
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchResults').style.display = 'none';
+        }
+
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.search-panel')) {
+                document.getElementById('searchResults').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+
+</html>
