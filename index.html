@@ -196,35 +196,40 @@
             background: rgba(255, 255, 255, .95);
             border: 1.5px solid #e2e8f0;
             border-radius: 12px;
-            padding: 12px 14px;
-            min-width: 190px;
+            padding: 10px 12px;
+            min-width: 170px;
             box-shadow: 0 4px 18px rgba(0, 0, 0, .12);
         }
 
         .legend-card .leg-title {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 800;
             color: #334155;
             text-transform: uppercase;
             letter-spacing: .6px;
-            margin-bottom: 8px;
+            margin-bottom: 7px;
+        }
+
+        .l-emoji {
+            width: 20px;
+            height: 20px;
+            min-width: 20px;
+            background: #ffffff;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.16);
         }
 
         .leg-row {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 11.5px;
-            color: #475569;
-            margin: 5px 0;
-        }
-
-        .l-dot {
-            width: 11px;
-            height: 11px;
-            border-radius: 50%;
-            border: 2px solid #fff;
-            flex-shrink: 0;
+            gap: 7px;
+            margin-bottom: 6px;
+            font-size: 12px;
+            line-height: 1.2;
         }
 
         /* ===== CUSTOM LEAFLET CONTROL ===== */
@@ -471,6 +476,29 @@
                 padding: 10px 12px;
             }
         }
+
+        .emoji-marker {
+            background: white;
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+            width: 34px !important;
+            height: 34px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease;
+        }
+
+        .emoji-marker div {
+            font-size: 20px;
+            line-height: 34px;
+            text-align: center;
+        }
+
+        .emoji-marker-hover {
+            transform: scale(1.2);
+        }
     </style>
 </head>
 
@@ -500,16 +528,31 @@
 
     <div class="legend-card">
         <div class="leg-title">Legenda Titik</div>
-        <div class="leg-row"><span class="l-dot" style="background:#ec4899;box-shadow:0 0 0 1px #f9a8d4"></span>Rumah
-            Sakit Hewan</div>
-        <div class="leg-row"><span class="l-dot" style="background:#22c55e;box-shadow:0 0 0 1px #86efac"></span>Klinik
-            Hewan</div>
-        <div class="leg-row"><span class="l-dot" style="background:#eab308;box-shadow:0 0 0 1px #fde047"></span>Praktek
-            Dokter Hewan</div>
-        <div class="leg-row"><span class="l-dot"
-                style="background:#06b6d4;box-shadow:0 0 0 1px #67e8f9"></span>Puskeswan</div>
-        <div class="leg-row"><span class="l-dot" style="background:#8b5cf6;box-shadow:0 0 0 1px #c4b5fd"></span>UPT /
-            Lab Veteriner</div>
+
+        <div class="leg-row">
+            <span class="l-emoji">🏥</span>
+            Rumah Sakit Hewan
+        </div>
+
+        <div class="leg-row">
+            <span class="l-emoji">🏩</span>
+            Klinik Hewan
+        </div>
+
+        <div class="leg-row">
+            <span class="l-emoji">🩺</span>
+            Praktek Dokter Hewan
+        </div>
+
+        <div class="leg-row">
+            <span class="l-emoji">🐾</span>
+            Puskeswan
+        </div>
+
+        <div class="leg-row">
+            <span class="l-emoji">🔬</span>
+            UPT / Lab Veteriner
+        </div>
     </div>
 
     <script src="js/qgis2web_expressions.js"></script>
@@ -777,48 +820,79 @@
                 + '</div></div>';
         }
 
-        function mStyle(tipe) {
-            var c = {
-                'Rumah Sakit Hewan': { f: '#ec4899', r: 8 },
-                'Klinik Hewan': { f: '#22c55e', r: 7 },
-                'Praktek Dokter Hewan': { f: '#eab308', r: 7 },
-                'Puskeswan': { f: '#06b6d4', r: 7 },
-                'UPT': { f: '#8b5cf6', r: 7 }
+        function getEmoji(tipe) {
+            var emoji = {
+                'Rumah Sakit Hewan': '🏥',
+                'Klinik Hewan': '🏩',
+                'Praktek Dokter Hewan': '🩺',
+                'Puskeswan': '🐾',
+                'UPT': '🔬'
             };
-            var s = c[tipe] || { f: '#ef4444', r: 7 };
-            return {
-                radius: s.r,
-                fillColor: s.f,
-                color: '#ffffff',
-                weight: 2,
-                fillOpacity: 1,
-                opacity: 1
-            };
+
+            return emoji[tipe] || '📍';
+        }
+
+        function emojiMarker(feature, latlng) {
+            var tipe = feature.properties['TIPE'];
+            var icon = L.divIcon({
+                className: 'emoji-marker',
+                html: `<div>${getEmoji(tipe)}</div>`,
+                iconSize: [34, 34],
+                iconAnchor: [17, 17],
+                popupAnchor: [0, -15]
+            });
+
+            return L.marker(latlng, { icon: icon });
         }
 
         // ===================== TITIK FASKES =====================
         map.createPane('pane_datasig_7');
         map.getPane('pane_datasig_7').style.zIndex = 405;
         map.getPane('pane_datasig_7').style['mix-blend-mode'] = 'normal';
+
         var layer_datasig_7 = new L.geoJson(json_datasig_7, {
             pane: 'pane_datasig_7',
             interactive: true,
+
             pointToLayer: function (feature, latlng) {
-                var st = mStyle(feature.properties['TIPE'] || '');
-                st.pane = 'pane_datasig_7';
-                return L.circleMarker(latlng, st);
-            },
-            onEachFeature: function (feature, layer) {
-                layer.bindPopup(buildPopup(feature), { maxWidth: 300, minWidth: 280 });
-                var origR = mStyle(feature.properties['TIPE'] || '').radius;
-                layer.on('mouseover', function () {
-                    layer.setStyle({ radius: origR + 3, weight: 2.5 });
+                var tipe = feature.properties['TIPE'] || '';
+
+                var icon = L.divIcon({
+                    className: 'emoji-marker',
+                    html: '<div>' + getEmoji(tipe) + '</div>',
+                    iconSize: [34, 34],
+                    iconAnchor: [17, 17],
+                    popupAnchor: [0, -15]
                 });
+
+                return L.marker(latlng, {
+                    icon: icon,
+                    pane: 'pane_datasig_7'
+                });
+            },
+
+            onEachFeature: function (feature, layer) {
+                layer.bindPopup(buildPopup(feature), {
+                    maxWidth: 300,
+                    minWidth: 280
+                });
+
+                layer.on('mouseover', function () {
+                    var el = layer.getElement();
+                    if (el) {
+                        el.classList.add('emoji-marker-hover');
+                    }
+                });
+
                 layer.on('mouseout', function () {
-                    layer.setStyle({ radius: origR, weight: 2 });
+                    var el = layer.getElement();
+                    if (el) {
+                        el.classList.remove('emoji-marker-hover');
+                    }
                 });
             }
         });
+
         bounds_group.addLayer(layer_datasig_7);
         map.addLayer(layer_datasig_7);
         setBounds();
